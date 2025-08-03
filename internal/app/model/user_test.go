@@ -1,0 +1,85 @@
+package model_test
+
+import (
+	"github.com/Rumpelstiltski1/restapi/internal/app/model"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func TestUser_Validate(t *testing.T) {
+	testCases := []struct {
+		name    string
+		u       func() *model.User
+		isValid bool
+	}{
+		{
+			name: "valid",
+			u: func() *model.User {
+				return model.TestUser(t)
+			},
+			isValid: true,
+		},
+		{
+			name: "with encrypted password",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Password = ""
+				u.EncryptedPassword = "encryptpassword"
+				return u
+			},
+			isValid: true,
+		},
+		{
+			name: "Empty email",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Email = ""
+				return u
+			},
+			isValid: false,
+		},
+		{
+			name: "Invalid email",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Email = "invalid"
+				return u
+			},
+			isValid: false,
+		},
+		{
+			name: "Empty password",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Password = ""
+				return u
+			},
+			isValid: false,
+		},
+		{
+			name: "Short password",
+			u: func() *model.User {
+				u := model.TestUser(t)
+				u.Password = "short"
+				return u
+			},
+			isValid: false,
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			if tC.isValid {
+				assert.NoError(t, tC.u().Validate())
+			} else {
+				assert.Error(t, tC.u().Validate())
+			}
+		})
+	}
+}
+
+func TestUser_BeforeCreate(t *testing.T) {
+	u := model.TestUser(t)
+	assert.NoError(t, u.BeforeCreate())
+	assert.NotEmpty(t, u.EncryptedPassword)
+}
